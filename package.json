@@ -8,9 +8,9 @@
     "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
-    "express"
-    "@google/generative-ai"
-    "dotenv"
+    "express": "",
+    "@google/generative-ai": "",
+    "dotenv": ""
   },
   "engines": {
     "node": ">=14.0.0"
