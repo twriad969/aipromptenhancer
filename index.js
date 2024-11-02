@@ -1,74 +1,166 @@
 const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const dotenv = require('dotenv');
-const cors = require('cors');  // CORS middleware
-const fetch = require('node-fetch'); // Polyfill fetch for Node.js
-
-global.fetch = fetch; // Set global fetch
+const cors = require('cors');
 
 dotenv.config();
 
 const app = express();
-app.use(cors()); // Enable CORS
+app.use(cors()); // Enable CORS for all routes
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-8b" });
 
-// Expanded patterns with more specific categories
-function analyzePromptType(text) {
+function analyzePromptContext(text) {
   const lowercaseText = text.toLowerCase();
   
-  const patterns = {
-    nextjs: ['next.js', 'nextjs', 'next js'],
-    react: ['react', 'vite', 'frontend app'],
-    vue: ['vue', 'vuejs', 'nuxt'],
-    angular: ['angular', 'ng'],
-    mobileApp: ['mobile', 'ios', 'android', 'flutter', 'react native', 'expo'],
-    api: ['api', 'backend', 'server', 'endpoint', 'microservice', 'rest', 'graphql', 'express'],
-    database: ['database', 'db', 'schema', 'data model', 'mongodb', 'postgresql', 'mysql', 'sqlite'],
-    auth: ['auth', 'login', 'register', 'user', 'account', 'authentication', 'oauth'],
-    blog: ['blog', 'cms', 'content', 'articles', 'posts', 'writer', 'markdown'],
-    ecommerce: ['shop', 'store', 'product', 'cart', 'checkout', 'payment', 'order', 'inventory'],
-    dashboard: ['dashboard', 'admin', 'analytics', 'metrics', 'monitor', 'stats', 'reporting'],
-    ai: ['ai', 'ml', 'machine learning', 'chatbot', 'bot', 'nlp', 'gpt', 'openai'],
-    game: ['game', 'gaming', '2d game', '3d game', 'multiplayer', 'unity', 'gamedev'],
-    social: ['social', 'community', 'forum', 'chat', 'messaging', 'network', 'friends'],
-    landing: ['landing', 'portfolio', 'showcase', 'promotional'],
-    tools: ['tool', 'utility', 'generator', 'converter', 'calculator', 'extension'],
-    devops: ['ci/cd', 'pipeline', 'docker', 'kubernetes', 'deployment', 'aws', 'cloud'],
-    testing: ['test', 'testing', 'jest', 'cypress', 'qa', 'quality'],
-    chrome: ['chrome extension', 'browser extension', 'firefox addon'],
-    desktop: ['electron', 'desktop app', 'tauri', 'windows app', 'mac app'],
-    scraping: ['scraper', 'crawler', 'automation', 'puppeteer', 'selenium'],
-    cms: ['wordpress', 'drupal', 'joomla', 'strapi', 'headless cms'],
-    booking: ['booking', 'reservation', 'appointment', 'schedule', 'calendar'],
-    ui: ['ui design', 'user interface', 'interface design', 'visual design'],
-    ux: ['ux design', 'user experience', 'experience design'],
-    branding: ['branding', 'logo design', 'brand identity', 'visual identity'],
-    typography: ['typography', 'font choices', 'type design'],
-    color: ['color scheme', 'color palette', 'color theory'],
-    layout: ['layout design', 'grid system', 'responsive design'],
-    wireframe: ['wireframe', 'mockup', 'prototype', 'sketch'],
-    iconography: ['icon design', 'icon set', 'symbols'],
-    illustration: ['illustration', 'graphic design', 'digital art']
+  // Detect prompt category
+  const categories = {
+    development: {
+      type: 'development',
+      indicators: ['app', 'website', 'code', 'develop', 'api', 'backend', 'frontend'],
+      techStack: {
+        nextjs: text.includes('nextjs') || text.includes('next.js'),
+        react: text.includes('react'),
+        vue: text.includes('vue'),
+        shadcn: text.includes('shadcn'),
+        tailwind: text.includes('tailwind'),
+      }
+    },
+    image: {
+      type: 'image',
+      indicators: ['draw', 'generate image', 'art', 'illustration', 'photo', 'picture', 'design logo'],
+      styles: {
+        realistic: text.includes('realistic') || text.includes('photorealistic'),
+        artistic: text.includes('artistic') || text.includes('stylized'),
+        cartoon: text.includes('cartoon') || text.includes('anime')
+      }
+    },
+    writing: {
+      type: 'writing',
+      indicators: ['write', 'blog', 'article', 'story', 'essay', 'script'],
+      styles: {
+        formal: text.includes('formal') || text.includes('professional'),
+        creative: text.includes('creative') || text.includes('story'),
+        technical: text.includes('technical') || text.includes('documentation')
+      }
+    },
+    marketing: {
+      type: 'marketing',
+      indicators: ['marketing', 'ad', 'campaign', 'social media', 'promotion'],
+      platforms: {
+        social: text.includes('social') || text.includes('instagram') || text.includes('twitter'),
+        email: text.includes('email') || text.includes('newsletter'),
+        ads: text.includes('ad') || text.includes('advertisement')
+      }
+    },
+    ai: {
+      type: 'ai',
+      indicators: ['chatbot', 'ai model', 'prompt', 'gpt', 'machine learning'],
+      focus: {
+        prompting: text.includes('prompt') || text.includes('instruction'),
+        model: text.includes('model') || text.includes('train'),
+        interaction: text.includes('chat') || text.includes('conversation')
+      }
+    }
   };
 
-  // Check for invalid/personal questions
-  const invalidPatterns = [
-    'who are you'
-  ];
-
-  if (invalidPatterns.some(pattern => lowercaseText.includes(pattern))) {
-    return 'invalid';
-  }
-  
-  for (const [type, keywords] of Object.entries(patterns)) {
-    if (keywords.some(keyword => lowercaseText.includes(keyword))) {
-      return type;
+  // Find matching category
+  for (const [key, category] of Object.entries(categories)) {
+    if (category.indicators.some(indicator => lowercaseText.includes(indicator))) {
+      return { category: key, details: category };
     }
   }
-  
-  return 'general';
+
+  return { category: 'general', details: null };
+}
+
+function generateEnhancementTemplate(analysis, userPrompt) {
+  const { category, details } = analysis;
+
+  let categorySpecificGuide = '';
+
+  switch(category) {
+    case 'development':
+      const { techStack } = details;
+      categorySpecificGuide = `
+Development Focus:
+- Architecture and structure
+- User interface and experience
+- Core features and functionality
+- Technical requirements
+${techStack.nextjs ? '- Next.js routing and components\n- Server vs client components' : ''}
+${techStack.shadcn ? '- UI component selection\n- Theme and styling patterns' : ''}`;
+      break;
+
+    case 'image':
+      categorySpecificGuide = `
+Visual Focus:
+- Subject and composition
+- Style and mood
+- Color palette and lighting
+- Technical specifications
+- Environmental details
+- Specific visual elements`;
+      break;
+
+    case 'writing':
+      categorySpecificGuide = `
+Writing Focus:
+- Tone and style
+- Structure and flow
+- Key points and message
+- Target audience
+- Supporting details
+- Format specifications`;
+      break;
+
+    case 'marketing':
+      categorySpecificGuide = `
+Marketing Focus:
+- Target audience
+- Key message and value proposition
+- Call to action
+- Platform-specific requirements
+- Brand voice and tone
+- Campaign context`;
+      break;
+
+    case 'ai':
+      categorySpecificGuide = `
+AI Focus:
+- Clear instructions and constraints
+- Desired output format
+- Important parameters
+- Context and requirements
+- Edge cases to handle
+- Quality criteria`;
+      break;
+
+    default:
+      categorySpecificGuide = `
+General Enhancement:
+- Key details and specifications
+- Context and requirements
+- Quality criteria
+- Desired outcome
+- Important parameters`;
+  }
+
+  return `Enhance this ${category} prompt to be more detailed and effective:
+"${userPrompt}"
+
+${categorySpecificGuide}
+
+Enhancement Rules:
+- Maintain original intent while adding detail
+- Be specific but flexible
+- Focus on desired outcomes
+- Add relevant context
+- Keep natural language flow
+- Don't include explanations or metadata
+
+Generate an enhanced prompt that provides clear, detailed instructions while maintaining a natural style.`;
 }
 
 app.get('/enhance', async (req, res) => {
@@ -77,46 +169,21 @@ app.get('/enhance', async (req, res) => {
     
     if (!userPrompt || userPrompt.length < 5) {
       return res.status(400).json({
-        error: 'Please provide a valid prompt with at least 5 characters'
+        error: 'Please provide a valid prompt'
       });
     }
 
-    const promptType = analyzePromptType(userPrompt);
-    
-    if (promptType === 'invalid') {
-      return res.status(400).json({
-        error: 'Please provide a development or creation-related prompt instead of a question'
-      });
-    }
-
-    let promptTemplate = `Enhance this development prompt for an AI system: "${userPrompt}"
-
-    Create a focused, medium-length prompt that covers key requirements. Make it:
-    - Clear and specific
-    - 3-4 main sections maximum
-    - No more than 10-12 bullet points total
-    - Focus on core features only
-    
-    Important rules:
-    - Keep descriptions brief but clear
-    - No implementation details or code
-    - No technical jargon unless necessary
-    - Use simple bullet points
-    - Focus on WHAT to build, not HOW
-    
-    Key aspects for this ${promptType} project:
-    ${getTypeSpecificPoints(promptType)}
-    
-    Write a natural, focused prompt that can be easily copied into another AI system.`;
+    const analysis = analyzePromptContext(userPrompt);
+    const promptTemplate = generateEnhancementTemplate(analysis, userPrompt);
 
     const result = await model.generateContent(promptTemplate);
-    let response = result.response.text()
+    const response = result.response.text()
       .replace(/```.*?```/gs, '')
       .replace(/\*\*/g, '')
       .replace(/^["']|["']$/g, '')
-      .replace(/\\n/g, '\n')
-      .replace(/^Enhanced prompt:?\s*/i, '')
-      .replace(/^Prompt:?\s*/i, '')
+      .replace(/^(Enhanced prompt:?|Prompt:?)\s*/i, '')
+      .replace(/^Here's the enhanced prompt:?\s*/i, '')
+      .replace(/^Enhanced version:?\s*/i, '')
       .trim();
 
     res.setHeader('Content-Type', 'text/plain');
@@ -124,139 +191,11 @@ app.get('/enhance', async (req, res) => {
 
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).json({
-      error: 'Failed to enhance prompt'
-    });
+    res.status(500).json({ error: 'Failed to process prompt' });
   }
 });
 
-function getTypeSpecificPoints(type) {
-  const points = {
-    nextjs: `
-    - Core pages and layouts
-    - Key features and interactions
-    - Data handling approach`,
-    
-    react: `
-    - Component structure
-    - State management
-    - User interactions`,
-    
-    vue: `
-    - Component structure
-    - Vuex state management
-    - Routing setup`,
-    
-    angular: `
-    - Module organization
-    - Key components and services
-    - Routing and guards`,
-
-    mobileApp: `
-    - Core user flows
-    - Device features to utilize
-    - Platform-specific considerations`,
-
-    api: `
-    - Main endpoints
-    - Data structures
-    - Auth requirements`,
-
-    database: `
-    - Core models
-    - Essential relationships
-    - Main fields`,
-
-    auth: `
-    - User roles and permissions
-    - Authentication flows
-    - Security measures`,
-
-    blog: `
-    - Content features
-    - User roles
-    - Core pages`,
-
-    ecommerce: `
-    - Product features
-    - Checkout flow
-    - Order management`,
-
-    dashboard: `
-    - Key metrics
-    - Main views
-    - User controls`,
-
-    ai: `
-    - AI capabilities
-    - User interactions
-    - Core features`,
-
-    game: `
-    - Game mechanics
-    - Player interactions
-    - Level design`,
-
-    social: `
-    - User features
-    - Content sharing
-    - Interactions`,
-
-    landing: `
-    - Key sections
-    - Content blocks
-    - Call-to-actions`,
-
-    tools: `
-    - Main functionality
-    - Input/output
-    - User options`,
-
-    devops: `
-    - CI/CD processes
-    - Deployment strategies
-    - Monitoring solutions`,
-
-    testing: `
-    - Testing strategies
-    - Tools to use
-    - Key scenarios to cover`,
-
-    chrome: `
-    - Features of the extension
-    - User interactions
-    - API integrations`,
-
-    desktop: `
-    - Main functionalities
-    - User interface design
-    - System requirements`,
-
-    scraping: `
-    - Target data sources
-    - Scraping techniques
-    - Data storage options`,
-
-    cms: `
-    - Content structure
-    - User roles and permissions
-    - Core features`,
-
-    booking: `
-    - Key features
-    - User workflow
-    - Notification system`,
-
-    general: `
-    - Core features
-    - User interactions
-    - Key requirements`
-  };
-
-  return points[type] || points.general;
-}
-
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Universal prompt enhancement service running on port ${PORT}`);
 });
