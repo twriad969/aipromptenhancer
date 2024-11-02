@@ -1,10 +1,15 @@
 const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const dotenv = require('dotenv');
+const cors = require('cors');  // CORS middleware
+const fetch = require('node-fetch'); // Polyfill fetch for Node.js
+
+global.fetch = fetch; // Set global fetch
 
 dotenv.config();
 
 const app = express();
+app.use(cors()); // Enable CORS
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-pro" });
@@ -38,14 +43,14 @@ function analyzePromptType(text) {
     cms: ['wordpress', 'drupal', 'joomla', 'strapi', 'headless cms'],
     booking: ['booking', 'reservation', 'appointment', 'schedule', 'calendar'],
     ui: ['ui design', 'user interface', 'interface design', 'visual design'],
-        ux: ['ux design', 'user experience', 'experience design'],
-        branding: ['branding', 'logo design', 'brand identity', 'visual identity'],
-        typography: ['typography', 'font choices', 'type design'],
-        color: ['color scheme', 'color palette', 'color theory'],
-        layout: ['layout design', 'grid system', 'responsive design'],
-        wireframe: ['wireframe', 'mockup', 'prototype', 'sketch'],
-        iconography: ['icon design', 'icon set', 'symbols'],
-        illustration: ['illustration', 'graphic design', 'digital art']
+    ux: ['ux design', 'user experience', 'experience design'],
+    branding: ['branding', 'logo design', 'brand identity', 'visual identity'],
+    typography: ['typography', 'font choices', 'type design'],
+    color: ['color scheme', 'color palette', 'color theory'],
+    layout: ['layout design', 'grid system', 'responsive design'],
+    wireframe: ['wireframe', 'mockup', 'prototype', 'sketch'],
+    iconography: ['icon design', 'icon set', 'symbols'],
+    illustration: ['illustration', 'graphic design', 'digital art']
   };
 
   // Check for invalid/personal questions
@@ -126,7 +131,6 @@ app.get('/enhance', async (req, res) => {
 });
 
 function getTypeSpecificPoints(type) {
-  // Simplified points for more focused prompts
   const points = {
     nextjs: `
     - Core pages and layouts
