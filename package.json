@@ -1,18 +1,32 @@
 {
-  "name": "your-app-name",
+  "name": "generative-ai-enhancer",
   "version": "1.0.0",
-  "description": "A Node.js application using Google Generative AI",
+  "description": "An Express server to enhance prompts using Google Generative AI.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "echo \"No tests specified\" && exit 0"
+    "dev": "nodemon index.js"
   },
   "dependencies": {
-    "express": "",
-    "@google/generative-ai": "",
-    "dotenv": ""
+    "express": "^4.18.2",
+    "dotenv": "^10.0.0",
+    "@google/generative-ai": "^0.4.1",
+    "cors": "^2.8.5",
+    "node-fetch": "^2.6.7"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
   },
   "engines": {
     "node": ">=14.0.0"
-  }
+  },
+  "keywords": [
+    "express",
+    "generative-ai",
+    "google",
+    "cors",
+    "fetch"
+  ],
+  "author": "Your Name",
+  "license": "ISC"
 }
