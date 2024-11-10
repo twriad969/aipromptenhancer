@@ -1,20 +1,23 @@
-# Use the official Node.js image
-FROM node:16
+# Use Node.js 16 as base since package.json requires >=14
+FROM node:16-slim
 
-# Set the working directory
+# Create app directory
 WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json first
+# Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies excluding devDependencies
+RUN npm ci --only=production
 
-# Copy the rest of the application files
+# Copy application source and .env file
 COPY . .
+
+# Set NODE_ENV to production
+ENV NODE_ENV=production
 
 # Expose the port the app runs on
 EXPOSE 3000
 
-# Command to run the app
-CMD ["node", "index.js"]
+# Command to run the application
+CMD ["npm", "start"]
