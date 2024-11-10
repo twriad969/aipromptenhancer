@@ -1,5 +1,5 @@
-# Use Node.js 16 as base since package.json requires >=14
-FROM node:16-slim
+# Use Node.js 18 for @google/generative-ai compatibility
+FROM node:18-slim
 
 # Create app directory
 WORKDIR /usr/src/app
