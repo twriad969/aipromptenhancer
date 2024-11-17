@@ -13,7 +13,7 @@ const app = express();
 app.use(cors()); // Enable CORS for all routes
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+const model = genAI.getGenerativeModel({ model: "gemini-exp-1114" });
 
 function analyzePromptContext(text) {
   const lowercaseText = text.toLowerCase();
